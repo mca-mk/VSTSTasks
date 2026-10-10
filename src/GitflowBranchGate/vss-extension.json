@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "GitflowBranchGate",
   "name": "Gitflow Branch Gate",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "publisher": "kerwincarpede",
   "galleryFlags": [
     "Public"
@@ -77,7 +77,8 @@
   },
   "files": [
     {
-      "path": "Task"
+      "path": "build/stage/Task",
+      "packagePath": "Task"
     }
   ],
   "contributions": [

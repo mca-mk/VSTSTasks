@@ -44,6 +44,12 @@ Apply branch rules for all branches and active Pull Requests:
 
 ### Release Notes
 
+#### 1.1.0
+
+- The task now runs on Windows, Linux and macOS agents (Node 24 / Node 20 handlers, agent 3.232.1 or newer).
+- Authenticates with the build's OAuth token automatically; "Allow scripts to access the OAuth token" no longer needs to be enabled.
+- Removed the "Windows Authentication" option.
+
 #### 1.0.5
 
 - Rule warnings are no longer written to the build log as pipeline warnings; they only appear in the build summary report. Errors still fail the build.

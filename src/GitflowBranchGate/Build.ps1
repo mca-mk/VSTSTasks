@@ -1,28 +1,53 @@
-#Install-Module -Name newtonsoft.json
-#Install tfx-cli using npm
-#npm install -g tfx-cli
+# Builds the Gitflow Branch Gate extension (.vsix) for upload to Azure DevOps Server.
+# Runs on Windows, Linux or macOS with PowerShell 7 (pwsh) and Node.js 20+.
+# Bump the version in Task/task.json before building; vss-extension.json is kept in sync from it.
 $ErrorActionPreference = "Stop"
+Set-Location $PSScriptRoot
 
-$task = Get-Content -Path ".\Task\task.json" -raw | ConvertFrom-JsonNewtonsoft
-$currentVersion = "$($task.version.Major).$($task.version.Minor).$($task.version.Patch)"
-$task.version.Patch = "$([System.Convert]::ToInt32($task.version.Patch) + 1)"
-[string]$newVersionNumber = "$($task.version.Major).$($task.version.Minor).$($task.version.Patch)"
-$task | ConvertTo-JsonNewtonsoft | set-content ".\Task\task.json"
+$taskDir = Join-Path $PSScriptRoot "Task"
+$stageDir = Join-Path $PSScriptRoot "build" "stage" "Task"
+$outputDir = Join-Path $PSScriptRoot "build"
 
-Write-Host "Updating Task: $($task.name)" -ForegroundColor Yellow
-Write-Host "Current Version: $currentVersion"
-Write-Host "New Version: $newVersionNumber"
+$task = Get-Content (Join-Path $taskDir "task.json") -Raw | ConvertFrom-Json
+$version = "$($task.version.Major).$($task.version.Minor).$($task.version.Patch)"
+Write-Host "Building $($task.name) $version" -ForegroundColor Yellow
 
-$extensionJson = Get-Content -Path "vss-extension.json" -raw | ConvertFrom-JsonNewtonsoft
-$currentExtensionVersion = $extensionJson.version
-$extensionJson.version = "$newVersionNumber"
-$extensionJson | ConvertTo-JsonNewtonsoft | set-content "vss-extension.json"
+$manifestPath = Join-Path $PSScriptRoot "vss-extension.json"
+$manifest = Get-Content $manifestPath -Raw
+$updated = $manifest -replace '("version"\s*:\s*")[^"]*(")', "`${1}$version`${2}"
+if ($updated -ne $manifest) {
+  Set-Content -Path $manifestPath -Value $updated -NoNewline
+  Write-Host "Updated vss-extension.json version to $version"
+}
 
-Write-Host "Updated VSS-Extension: $($extensionJson.name)" -ForegroundColor Yellow
-Write-Host "Current Version: $($currentExtensionVersion)"
-Write-Host "New Version: $newVersionNumber"
+Push-Location $taskDir
+try {
+  npm ci
+  if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+  npm test
+  if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
+}
+finally {
+  Pop-Location
+}
 
-# tfx build tasks upload --task-path .\Task
-tfx extension create --manifest vss-extension.json --output-path .\build\
+# Stage only what the agent needs: compiled code, production dependencies and task metadata.
+if (Test-Path $stageDir) { Remove-Item $stageDir -Recurse -Force }
+New-Item -ItemType Directory -Path $stageDir | Out-Null
+foreach ($file in "task.json", "icon.png", "icon.svg", "ReportSummary.md", "package.json", "package-lock.json") {
+  Copy-Item (Join-Path $taskDir $file) $stageDir
+}
+New-Item -ItemType Directory -Path (Join-Path $stageDir "dist") | Out-Null
+Copy-Item (Join-Path $taskDir "dist" "src") (Join-Path $stageDir "dist") -Recurse
 
-tfx build tasks upload --task-path .\Task
+Push-Location $stageDir
+try {
+  npm ci --omit=dev
+  if ($LASTEXITCODE -ne 0) { throw "npm ci --omit=dev failed" }
+}
+finally {
+  Pop-Location
+}
+
+npx --yes tfx-cli extension create --manifest-globs vss-extension.json --output-path $outputDir --no-prompt
+if ($LASTEXITCODE -ne 0) { throw "tfx extension create failed" }
