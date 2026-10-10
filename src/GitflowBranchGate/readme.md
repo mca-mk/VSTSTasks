@@ -44,6 +44,10 @@ Apply branch rules for all branches and active Pull Requests:
 
 ### Release Notes
 
+#### 1.0.5
+
+- Rule warnings are no longer written to the build log as pipeline warnings; they only appear in the build summary report. Errors still fail the build.
+
 #### 1.0.3
 
 - Added the ability to bypass branches matching a wildcard pattern.

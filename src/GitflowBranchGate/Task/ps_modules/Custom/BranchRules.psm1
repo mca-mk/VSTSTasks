@@ -307,24 +307,6 @@ Function Write-OutputPullRequests {
   }
 }
 
-Function Write-OutputWarnings {
-  [CmdletBinding()]
-  param(
-    [Parameter(Mandatory = $true)][System.Object[]]$Branches
-  )
-  Process {
-    [System.Object[]]$warnings = $Branches | Out-Errors -Type Warning
-    if ($warnings.Count -gt 0) {
-      Write-Output "------------------------------------------------------------------------------"
-      Write-Output "Warnings:"
-      Write-Output "------------------------------------------------------------------------------"  
-      foreach ($warning in $warnings) {
-        Write-Warning "Gitflow Branch Gate: $($warning.Message)"
-      }
-    }
-  }
-}
-
 Function Write-OutputSummary {
   [CmdletBinding()]
   param(

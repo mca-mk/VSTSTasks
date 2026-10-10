@@ -88,7 +88,6 @@ $branches = Invoke-BranchRules -Branches $branches -Build $build -Rules $rules
 
 Write-OutputCurrentBranches -Branches $Branches
 Write-OutputPullRequests -PullRequests $pullRequests
-Write-OutputWarnings -Branches $Branches
 
 $summaryTitle = "Gitflow Branch Gate Report"
 $summaryFilePath = "$stagingDirectory\GitflowBranchGate.ReportSummary.md"
